@@ -1,32 +1,13 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from app.models import TransactionResponse, TransactionCreate
+from app.data import transactions
+from app.services import find_transaction, calculate_revenue
 
 
 app = FastAPI(
     title = "Analytics Metrics API",
     version = '0.1.0',
 )
-
-transactions = [
-    {"id": 1, "country": "DE", "revenue": 120.50},
-    {"id": 2, "country": "DE", "revenue": 89.99},
-    {"id": 3, "country": "FR", "revenue": 75.00},
-    {"id": 4, "country": "UK", "revenue": 220.00},
-    {"id": 5, "country": "FR", "revenue": 130.25},
-]
-
-class TransactionCreate(BaseModel):
-    country: str = Field(
-        min_length=2,
-        max_length=2,
-        description="Two-letter country code"
-    )
-    revenue: float = Field(gt=0, description=" The revenue must be greater than 0")
-
-class TransactionResponse(BaseModel):
-    id: int
-    country: str
-    revenue: float
 
 @app.post("/transactions", response_model= TransactionResponse, status_code= 201)
 def create_transaction(transaction: TransactionCreate):
@@ -46,33 +27,20 @@ def health():
 
 @app.get("/metrics/revenue")
 def get_revenue(country :str | None = None, min_revenue :float= 0):
-    filtered_transactions = transactions
-    if country is not None:
-        filtered_transactions = [transaction
-                                 for transaction in filtered_transactions
-                                 if transaction["country"].upper() == country.upper()]
-
-    
-    if min_revenue > 0 :
-        filtered_transactions = [transaction
-                                 for transaction in filtered_transactions
-                                 if transaction["revenue"] >= min_revenue]
-          
-    total_revenue = sum(transaction["revenue"] for transaction in filtered_transactions)
+    result = calculate_revenue(country = country, min_revenue= min_revenue)
     return {"metric": "revenue",
             "country": country.upper() if country else "ALL",
             "minimum_value": min_revenue,
-            "value": round(total_revenue, 2),
+            "value": result['total_revenue'],
             "currency": "EUR",
-            "transaction_count" : len(filtered_transactions),}
+            "transaction_count" : result['transaction_count'],}
 
 @app.get("/transactions/{transaction_id}", response_model= TransactionResponse,)
 def get_transaction(transaction_id : int):
-    for transaction in transactions:
-        if transaction["id"] == transaction_id:
-            return transaction
-
-    raise HTTPException(
-        status_code=404,
-        detail="Transaction not found"
+    transaction = find_transaction(transaction_id)
+    if transaction is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Transaction not found"
     )
+    return transaction

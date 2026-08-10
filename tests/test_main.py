@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
-from app.main import app, transactions
+from app.main import app
+from app.data import transactions
 import pytest
 
 client = TestClient(app)
