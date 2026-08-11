@@ -1,7 +1,12 @@
 import sqlite3
 from pathlib import Path
 
-DATABASE_PATH = Path("analytics.db")
+DATABASE_PATH = Path("data/analytics.db")
+
+DATABASE_PATH.parent.mkdir(
+    parents=True,
+    exist_ok=True,
+)
 
 def get_connection():
     connection = sqlite3.connect(DATABASE_PATH)

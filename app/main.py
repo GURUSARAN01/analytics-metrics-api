@@ -1,11 +1,20 @@
 from fastapi import FastAPI, HTTPException
 from app.models import TransactionResponse, TransactionCreate
 from app.services import find_transaction, calculate_revenue, create_transaction as create_transaction_service
+from contextlib import asynccontextmanager
+from app.database import initialize_database, seed_database
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    initialize_database()
+    seed_database()
+
+    yield
 
 app = FastAPI(
     title = "Analytics Metrics API",
     version = '0.1.0',
+    lifespan=lifespan,
 )
 
 @app.post("/transactions", response_model= TransactionResponse, status_code= 201)
