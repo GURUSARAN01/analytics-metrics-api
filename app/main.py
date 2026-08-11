@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from app.models import TransactionResponse, TransactionCreate
-from app.data import transactions
-from app.services import find_transaction, calculate_revenue
+from app.services import find_transaction, calculate_revenue, create_transaction as create_transaction_service
 
 
 app = FastAPI(
@@ -11,15 +10,8 @@ app = FastAPI(
 
 @app.post("/transactions", response_model= TransactionResponse, status_code= 201)
 def create_transaction(transaction: TransactionCreate):
-    new_transaction = {
-        "id": len(transactions) + 1,
-        "country": transaction.country.upper(),
-        "revenue": transaction.revenue,
-    }
+    return create_transaction_service(country=transaction.country, revenue=transaction.revenue)
 
-    transactions.append(new_transaction)
-
-    return new_transaction
 
 @app.get("/health")
 def health():

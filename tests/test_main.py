@@ -1,29 +1,13 @@
 from fastapi.testclient import TestClient
 from app.main import app
-from app.data import transactions
-import pytest
+from app.services import calculate_revenue
 
 client = TestClient(app)
 
-original_transactions = [transaction.copy() for transaction in transactions]
 
-@pytest.fixture(autouse=True)
-def reset_transactions():
-    transactions.clear()
-    transactions.extend(
-        transaction.copy()
-        for transaction in original_transactions
-   )
-    yield
-
-    transactions.clear()
-
-    transactions.extend(
-        transaction.copy()
-        for transaction in original_transactions
-    )
 def test_transaction_count_starts_at_five():
-    assert len(transactions) == 5
+    result = calculate_revenue()
+    assert result["transaction_count"] == 5
 
 def test_health():
     response = client.get("/health")
@@ -44,6 +28,15 @@ def test_create_transaction():
     response = client.post("/transactions", json={
         "country": "de", "revenue": 150.0,
     },)
+    created_transaction = response.json()
+
+    transaction_id = created_transaction["id"]
+
+    get_response = client.get(
+        f"/transactions/{transaction_id}"
+    )
+
+    assert get_response.status_code == 200
     assert response.status_code == 201
 
 def test_create_transaction_negative_revenue():
